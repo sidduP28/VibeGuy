@@ -8,7 +8,10 @@
 - [x] Phase 1: Workspace Scaffolding & Core Architecture (`packages/core`)
   - Tests: vitest run -> 5 files passed, 18 tests passed (holdout, sanitize, trigger, stats, ssrf).
   - Build: tsup succeeded (CJS, ESM, DTS).
-- [ ] Phase 2: Ultra-Fast In-Head SDK Engine (`packages/sdk`)
+- [x] Phase 2: Ultra-Fast In-Head SDK Engine (`packages/sdk`)
+  - G1 Gate: 2,834 bytes gzip (< 3072 bytes budget, 0 dependencies).
+  - G2-G5 Gates: bot detection, visibility-only prehide, textContent sanitization, decode-before-reveal image swap, 300ms fail-safe fallback.
+  - Tests: 7 passed.
 - [ ] Phase 3: React SDK & Edge Adapter (`packages/react`, `packages/edge`)
 - [ ] Phase 4: Database Layer & Backend APIs (`apps/console`)
 - [ ] Phase 5: Marketer Console Frontend UI (`apps/console`)
