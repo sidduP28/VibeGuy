@@ -8,6 +8,10 @@ build/
 coverage/
 *.sqlite
 *.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+*.tsbuildinfo
+brag-output/
 test-results/
 playwright-report/
 blob-report/

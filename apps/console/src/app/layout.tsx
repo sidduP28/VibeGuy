@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 
 export const metadata = {
   title: 'VibeGuy Console',
-  description: 'Creator-to-commerce personalization studio',
+  description: 'Creator-to-commerce personalization studio · VibeGuy',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

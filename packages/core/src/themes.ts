@@ -197,3 +197,44 @@ export function repairContrast(textColor: string, bgColor: string): string {
   // If background is light, return dark text (#111827). If dark, return bright text (#f9fafb)
   return bgLuminance > 0.4 ? '#09090b' : '#fafafa';
 }
+
+/**
+ * Maps theme tokens to standard CSS custom properties:
+ * --bg, --fg, --accent, --font-heading, --font-body, --radius, --space, plus --card-bg, --border, --muted
+ */
+export function themeToCssVars(theme?: any): Record<string, string> {
+  if (!theme) return {};
+  const t =
+    theme.tokens
+      ? typeof theme.tokens === 'string'
+        ? JSON.parse(theme.tokens)
+        : theme.tokens
+      : theme;
+
+  const bg = t.bg || t.backgroundColor || '#ffffff';
+  const fg = t.fg || t.textColor || '#0f172a';
+  const accent = t.accent || t.primaryColor || '#2563eb';
+  const fontHeading =
+    t.fontHeading || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  const fontBody =
+    t.fontBody || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  const radius = t.radius || t.borderRadius || '8px';
+  const space = t.space || '16px';
+  const cardBg = t.cardBg || t.cardBackgroundColor || (bg === '#ffffff' ? '#f8fafc' : bg);
+  const isDark = (bg.startsWith('#0') || bg.startsWith('#1')) && !bg.includes('#ffffff');
+  const border = t.border || (isDark ? '#334155' : '#e2e8f0');
+  const muted = t.muted || t.textMutedColor || '#64748b';
+
+  return {
+    '--bg': bg,
+    '--fg': fg,
+    '--accent': accent,
+    '--font-heading': fontHeading,
+    '--font-body': fontBody,
+    '--radius': radius,
+    '--space': space,
+    '--card-bg': cardBg,
+    '--border': border,
+    '--muted': muted,
+  };
+}

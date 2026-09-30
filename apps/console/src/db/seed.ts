@@ -1,5 +1,5 @@
 import { getDb } from './index';
-import { sites, creators, testimonials, themes, campaigns, campaignVersions } from './schema';
+import { sites, siteDna, creators, testimonials, themes, campaigns, campaignVersions } from './schema';
 import { BUILTIN_THEMES } from '@vibe/core';
 import { createClient } from '@libsql/client';
 import * as path from 'node:path';
@@ -21,33 +21,82 @@ export async function seedDatabase() {
   // Create tables idempotently
   await rawClient.execute(`CREATE TABLE IF NOT EXISTS sites (
     id TEXT PRIMARY KEY,
-    domains TEXT NOT NULL,
-    public_key TEXT NOT NULL UNIQUE,
+    owner_id TEXT NOT NULL DEFAULT 'owner_default',
+    name TEXT NOT NULL DEFAULT 'My Store',
+    domain TEXT NOT NULL DEFAULT 'http://localhost:3002',
+    site_key TEXT NOT NULL UNIQUE,
+    default_theme_id TEXT,
+    status TEXT NOT NULL DEFAULT 'active',
+    domains TEXT NOT NULL DEFAULT '[]',
+    public_key TEXT NOT NULL,
     kill_switch INTEGER NOT NULL DEFAULT 0,
     selector_map TEXT,
     created_at TEXT NOT NULL
   );`);
 
+  // Safe migration for existing sites table
+  try { await rawClient.execute(`ALTER TABLE sites ADD COLUMN owner_id TEXT NOT NULL DEFAULT 'owner_default';`); } catch {}
+  try { await rawClient.execute(`ALTER TABLE sites ADD COLUMN name TEXT NOT NULL DEFAULT 'My Store';`); } catch {}
+  try { await rawClient.execute(`ALTER TABLE sites ADD COLUMN domain TEXT NOT NULL DEFAULT 'http://localhost:3002';`); } catch {}
+  try { await rawClient.execute(`ALTER TABLE sites ADD COLUMN site_key TEXT;`); } catch {}
+  try { await rawClient.execute(`ALTER TABLE sites ADD COLUMN default_theme_id TEXT;`); } catch {}
+  try { await rawClient.execute(`ALTER TABLE sites ADD COLUMN status TEXT NOT NULL DEFAULT 'active';`); } catch {}
+  try { await rawClient.execute(`UPDATE sites SET site_key = COALESCE(site_key, public_key, id) WHERE site_key IS NULL OR site_key = '';`); } catch {}
+
+  await rawClient.execute(`CREATE TABLE IF NOT EXISTS site_dna (
+    id TEXT PRIMARY KEY,
+    site_id TEXT NOT NULL UNIQUE,
+    brand_name TEXT NOT NULL DEFAULT '',
+    palette TEXT NOT NULL DEFAULT '[]',
+    fonts TEXT NOT NULL DEFAULT '[]',
+    tone TEXT NOT NULL DEFAULT '',
+    audience TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );`);
+
+  await rawClient.execute(`CREATE TABLE IF NOT EXISTS themes (
+    id TEXT PRIMARY KEY,
+    site_id TEXT NOT NULL DEFAULT 'site_aurora',
+    name TEXT NOT NULL,
+    tokens TEXT NOT NULL,
+    is_builtin INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT ''
+  );`);
+
+  try { await rawClient.execute(`ALTER TABLE themes ADD COLUMN site_id TEXT NOT NULL DEFAULT 'site_aurora';`); } catch {}
+  try { await rawClient.execute(`ALTER TABLE themes ADD COLUMN created_at TEXT NOT NULL DEFAULT '';`); } catch {}
+
   await rawClient.execute(`CREATE TABLE IF NOT EXISTS creators (
     id TEXT PRIMARY KEY,
     site_id TEXT NOT NULL,
-    name TEXT NOT NULL,
-    handle TEXT NOT NULL,
-    niche TEXT NOT NULL,
-    audience TEXT NOT NULL,
-    interests TEXT NOT NULL,
-    tone TEXT NOT NULL,
-    aesthetic TEXT NOT NULL,
-    theme_id TEXT NOT NULL,
-    vibe_code TEXT NOT NULL UNIQUE,
+    slug TEXT NOT NULL DEFAULT '',
+    display_name TEXT NOT NULL DEFAULT '',
+    name TEXT NOT NULL DEFAULT '',
+    handle TEXT NOT NULL DEFAULT '',
+    niche TEXT NOT NULL DEFAULT '',
+    audience TEXT NOT NULL DEFAULT '',
+    interests TEXT NOT NULL DEFAULT '[]',
+    tone TEXT NOT NULL DEFAULT '',
+    aesthetic TEXT NOT NULL DEFAULT '',
+    theme_id TEXT,
+    copy_overrides TEXT NOT NULL DEFAULT '{}',
+    status TEXT NOT NULL DEFAULT 'active',
+    vibe_code TEXT NOT NULL DEFAULT '',
     utm_source TEXT NOT NULL DEFAULT '',
     utm_campaign TEXT NOT NULL DEFAULT '',
     referrer_rules TEXT NOT NULL DEFAULT '[]',
-    preferred_cta TEXT NOT NULL,
+    preferred_cta TEXT NOT NULL DEFAULT '',
     brand_voice TEXT NOT NULL DEFAULT '',
     hero_banner TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL
   );`);
+
+  try { await rawClient.execute(`ALTER TABLE creators ADD COLUMN slug TEXT NOT NULL DEFAULT '';`); } catch {}
+  try { await rawClient.execute(`ALTER TABLE creators ADD COLUMN display_name TEXT NOT NULL DEFAULT '';`); } catch {}
+  try { await rawClient.execute(`ALTER TABLE creators ADD COLUMN copy_overrides TEXT NOT NULL DEFAULT '{}';`); } catch {}
+  try { await rawClient.execute(`ALTER TABLE creators ADD COLUMN status TEXT NOT NULL DEFAULT 'active';`); } catch {}
 
   await rawClient.execute(`CREATE TABLE IF NOT EXISTS testimonials (
     id TEXT PRIMARY KEY,
@@ -57,13 +106,6 @@ export async function seedDatabase() {
     image TEXT NOT NULL,
     approved INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL
-  );`);
-
-  await rawClient.execute(`CREATE TABLE IF NOT EXISTS themes (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    tokens TEXT NOT NULL,
-    is_builtin INTEGER NOT NULL DEFAULT 1
   );`);
 
   await rawClient.execute(`CREATE TABLE IF NOT EXISTS campaigns (
@@ -139,157 +181,434 @@ export async function seedDatabase() {
     status TEXT NOT NULL DEFAULT 'pending'
   );`);
 
+  // Performance Optimization: WAL mode & High-speed query indexes
+  try { await rawClient.execute(`PRAGMA journal_mode = WAL;`); } catch {}
+  try { await rawClient.execute(`PRAGMA synchronous = NORMAL;`); } catch {}
+  try { await rawClient.execute(`PRAGMA busy_timeout = 5000;`); } catch {}
+  try { await rawClient.execute(`CREATE INDEX IF NOT EXISTS idx_events_site_id ON events (site_id);`); } catch {}
+  try { await rawClient.execute(`CREATE INDEX IF NOT EXISTS idx_events_site_campaign ON events (site_id, campaign_id);`); } catch {}
+  try { await rawClient.execute(`CREATE INDEX IF NOT EXISTS idx_events_visitor ON events (visitor_id);`); } catch {}
+  try { await rawClient.execute(`CREATE INDEX IF NOT EXISTS idx_events_type ON events (type);`); } catch {}
+  try { await rawClient.execute(`CREATE INDEX IF NOT EXISTS idx_campaigns_site_id ON campaigns (site_id);`); } catch {}
+  try { await rawClient.execute(`CREATE INDEX IF NOT EXISTS idx_creators_site_id ON creators (site_id);`); } catch {}
+
   const db = getDb();
   const now = new Date().toISOString();
 
-  // Seed site
+  // 1. Seed Aurora as Site #1
+  const auroraSite = {
+    id: 'site_aurora',
+    ownerId: 'owner_default',
+    name: 'Aurora Atelier',
+    domain: 'http://localhost:3002',
+    siteKey: 'pk_live_aurora_2026',
+    defaultThemeId: 'theme_aurora_default',
+    status: 'active',
+    domains: JSON.stringify(['localhost:3002', '127.0.0.1:3002', 'aurora-store.com']),
+    publicKey: 'pk_live_aurora_2026',
+    killSwitch: false,
+    selectorMap: JSON.stringify({
+      '[data-vibe-slot="headline"]': 'headline',
+      '[data-vibe-slot="subheadline"]': 'subheadline',
+      '[data-vibe-slot="cta"]': 'cta',
+      '[data-vibe-slot="offer"]': 'offer',
+      '[data-vibe-slot="hero-image"]': 'hero-image',
+    }),
+    createdAt: now,
+  };
+
+  await db.insert(sites).values(auroraSite).onConflictDoNothing();
+
+  // Also seed legacy site_demo if needed
   await db
     .insert(sites)
     .values({
+      ...auroraSite,
       id: 'site_demo',
-      domains: JSON.stringify(['localhost:3000', 'store.example.com', '127.0.0.1']),
+      name: 'Aurora Demo Store',
+      siteKey: 'pk_live_vibepersonalize_2026',
       publicKey: 'pk_live_vibepersonalize_2026',
-      killSwitch: false,
-      selectorMap: JSON.stringify({
-        '.hero-title': 'headline',
-        '.hero-sub': 'subheadline',
-        '.hero-btn': 'cta',
-      }),
-      createdAt: now,
     })
     .onConflictDoNothing();
 
-  // Seed builtin themes
+  // 2. Seed Aurora Site DNA
+  const auroraDna = {
+    id: 'dna_aurora',
+    siteId: 'site_aurora',
+    brandName: 'Aurora Atelier',
+    palette: JSON.stringify(['#0f172a', '#22c55e', '#fafafa', '#f59e0b', '#38bdf8']),
+    fonts: JSON.stringify(['Fraunces', 'Source Sans 3', 'IBM Plex Mono']),
+    tone: 'Calm, architectural, intentional restraint',
+    audience: 'Design connoisseurs, architects, quiet luxury patrons',
+    notes: 'Curated boutique objects with zero clutter and high craft.',
+    createdAt: now,
+    updatedAt: now,
+  };
+  await db.insert(siteDna).values(auroraDna).onConflictDoNothing();
+  await db.insert(siteDna).values({ ...auroraDna, id: 'dna_demo', siteId: 'site_demo' }).onConflictDoNothing();
+
+  // 3. Seed Themes for Aurora
+  const auroraThemes = [
+    {
+      id: 'theme_aurora_default',
+      siteId: 'site_aurora',
+      name: 'Aurora Atelier Default',
+      tokens: JSON.stringify({
+        bg: '#ffffff',
+        fg: '#0f172a',
+        accent: '#2563eb',
+        cardBg: '#f8fafc',
+        border: '#e2e8f0',
+        muted: '#64748b',
+        fontHeading: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontBody: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        radius: '8px',
+        space: '16px',
+        copyDefaults: {
+          headline: 'Deliberate Objects for Intentional Living',
+          subheadline: 'A curated collection of minimalist home and studio artifacts.',
+          ctaText: 'Explore Collection',
+        },
+      }),
+      isBuiltin: true,
+      createdAt: now,
+    },
+    {
+      id: 'theme_energy',
+      siteId: 'site_aurora',
+      name: 'High-Impact Fitness',
+      tokens: JSON.stringify({
+        bg: '#0f172a',
+        fg: '#f8fafc',
+        accent: '#22c55e',
+        cardBg: '#1e293b',
+        border: '#334155',
+        muted: '#94a3b8',
+        fontHeading: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontBody: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        radius: '4px',
+        space: '16px',
+        copyDefaults: {
+          headline: 'High-Impact Performance Gear Curated by Fiona',
+          subheadline: 'Engineered training essentials tested across 500+ intense conditioning and barbell sessions.',
+          ctaText: 'Shop Fiona’s Training Kit',
+        },
+      }),
+      isBuiltin: false,
+      createdAt: now,
+    },
+    {
+      id: 'theme_calm',
+      siteId: 'site_aurora',
+      name: 'Calm Architectural',
+      tokens: JSON.stringify({
+        bg: '#fafafa',
+        fg: '#18181b',
+        accent: '#52525b',
+        cardBg: '#ffffff',
+        border: '#e4e4e7',
+        muted: '#71717a',
+        fontHeading: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontBody: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        radius: '0px',
+        space: '16px',
+        copyDefaults: {
+          headline: 'Essential Living Space Edit by Max',
+          subheadline: 'Calm tactile objects crafted from linen, stone, and unlacquered raw materials.',
+          ctaText: 'Explore Calm Spaces',
+        },
+      }),
+      isBuiltin: false,
+      createdAt: now,
+    },
+    {
+      id: 'theme_gold',
+      siteId: 'site_aurora',
+      name: 'Quiet Luxury Gold',
+      tokens: JSON.stringify({
+        bg: '#090d16',
+        fg: '#f8fafc',
+        accent: '#f59e0b',
+        cardBg: '#121826',
+        border: '#1e293b',
+        muted: '#94a3b8',
+        fontHeading: 'Georgia, Cambria, "Times New Roman", Times, serif',
+        fontBody: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        radius: '2px',
+        space: '16px',
+        copyDefaults: {
+          headline: 'The Haute Beauty Sanctuary Curated by Lena',
+          subheadline: 'Potent peptide formulations and pure mulberry silk rituals designed for radiant rest.',
+          ctaText: 'Acquire Lena’s Private Reserve',
+        },
+      }),
+      isBuiltin: false,
+      createdAt: now,
+    },
+    {
+      id: 'theme_cyber',
+      siteId: 'site_aurora',
+      name: 'Dark Cyber Hardware',
+      tokens: JSON.stringify({
+        bg: '#0b0f19',
+        fg: '#f1f5f9',
+        accent: '#38bdf8',
+        cardBg: '#131b2e',
+        border: '#1e293b',
+        muted: '#94a3b8',
+        fontHeading: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontBody: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+        radius: '6px',
+        space: '16px',
+        copyDefaults: {
+          headline: 'High-Density Desk & Travel Gear by Tom',
+          subheadline: 'Precision-machined power, smart thermal monitoring, and low-latency acoustic fidelity.',
+          ctaText: 'Upgrade Your Hardware Stack',
+        },
+      }),
+      isBuiltin: false,
+      createdAt: now,
+    },
+  ];
+
+  for (const t of auroraThemes) {
+    await db.insert(themes).values(t).onConflictDoNothing();
+    await db.insert(themes).values({ ...t, id: `${t.id}_demo`, siteId: 'site_demo' }).onConflictDoNothing();
+  }
+
+  // Seed builtin global themes into themes table for site_aurora as starter library
   for (const [id, themeTokens] of Object.entries(BUILTIN_THEMES)) {
     await db
       .insert(themes)
-      .values({ id, name: themeTokens.name, tokens: JSON.stringify(themeTokens), isBuiltin: true })
+      .values({
+        id: `builtin_${id}`,
+        siteId: 'site_aurora',
+        name: themeTokens.name,
+        tokens: JSON.stringify({
+          bg: themeTokens.backgroundColor,
+          fg: themeTokens.textColor,
+          accent: themeTokens.accentColor || themeTokens.primaryColor,
+          cardBg: themeTokens.cardBackgroundColor,
+          fontHeading: themeTokens.fontHeading,
+          fontBody: themeTokens.fontBody,
+          radius: themeTokens.borderRadius,
+          space: '16px',
+        }),
+        isBuiltin: true,
+        createdAt: now,
+      })
       .onConflictDoNothing();
   }
 
-  // Seed creators
-  const creatorsData = [
+  // 4. Seed Creators migrated from data/creators.ts
+  const auroraCreators = [
     {
-      id: 'cr_fit',
-      siteId: 'site_demo',
-      name: 'Alex Rivera',
-      handle: '@alexfit',
-      niche: 'High-Performance Fitness',
-      audience: 'Strength athletes & biohackers (ages 20-38)',
-      interests: JSON.stringify(['CrossFit', 'Powerlifting', 'Keto', 'Supplements']),
-      tone: 'Relentless, empowering, science-backed',
+      id: 'cr_fitfiona',
+      siteId: 'site_aurora',
+      slug: 'fitfiona',
+      displayName: 'Fiona Vance',
+      name: 'Fiona Vance',
+      handle: '@fitfiona',
+      niche: 'High-Impact Fitness',
+      audience: 'Athletes & Conditioning',
+      interests: JSON.stringify(['CrossFit', 'Strength', 'Recovery']),
+      tone: 'Relentless, empowering, clear',
       aesthetic: 'High-contrast neon lime on pitch black',
-      themeId: 'fitness-energy',
-      vibeCode: 'fit2026',
+      themeId: 'theme_energy',
+      status: 'active',
+      vibeCode: 'fitfiona',
       utmSource: 'instagram',
-      utmCampaign: 'alexfit_spring',
-      referrerRules: JSON.stringify(['instagram.com', 'youtube.com', 'linkin.bio']),
-      preferredCta: 'Crush Your PR Today',
-      brandVoice: 'Science-backed. Relentless drive. Zero fluff.',
-      heroBanner: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=1200&q=80',
+      utmCampaign: 'fiona_spring',
+      referrerRules: JSON.stringify(['instagram.com', 'linkin.bio']),
+      preferredCta: 'Shop Fiona’s Training Kit',
+      brandVoice: 'Relentless energy. Zero excuses.',
+      heroBanner: '/images/hero-fitfiona.jpg',
+      copyOverrides: JSON.stringify({
+        headline: 'High-Impact Performance Gear Curated by Fiona',
+        subheadline: 'Engineered training essentials tested across 500+ intense conditioning and barbell sessions.',
+        ctaText: 'Shop Fiona’s Training Kit',
+        heroImage: '/images/hero-fitfiona.jpg',
+        offer: 'Save 20% on Fiona’s Athletic Picks with code FIT20',
+        bundleText: 'Complete Conditioning Bundle · Save 20%',
+        discountCode: 'FIT20',
+        discountPercent: 20,
+        testimonials: [
+          {
+            quote: 'These bands and the shaker survived daily abuse in my gym bag. Absolutely unbeatable durability.',
+            author: 'Fiona Vance',
+            role: 'Pro Trainer & Hybrid Athlete',
+          },
+          {
+            quote: 'Finally a kit with no filler. The grip on the mat alone changed my floor mobility sessions.',
+            author: 'Marcus Cole',
+            role: 'Strength Coach',
+          },
+        ],
+      }),
       createdAt: now,
     },
     {
-      id: 'cr_min',
-      siteId: 'site_demo',
-      name: 'Marcus Chen',
-      handle: '@marcusminimal',
-      niche: 'Productivity & Minimalist Design',
-      audience: 'Engineers, architects, founders',
-      interests: JSON.stringify(['Workspace Setup', 'Industrial Design', 'Mechanical Keyboards']),
+      id: 'cr_minimal_max',
+      siteId: 'site_aurora',
+      slug: 'minimal-max',
+      displayName: 'Max Sterling',
+      name: 'Max Sterling',
+      handle: '@minimalmax',
+      niche: 'Minimalist Architecture & Home',
+      audience: 'Architects, industrial designers, intentional curators',
+      interests: JSON.stringify(['Brutalism', 'Ceramics', 'Workspace Ergonomics']),
       tone: 'Calm, intentional, precise',
-      aesthetic: 'Strict monochrome, generous whitespace, brutalist grid',
-      themeId: 'minimalist',
-      vibeCode: 'minimal2026',
+      aesthetic: 'Strict monochrome, brutalist grid',
+      themeId: 'theme_calm',
+      status: 'active',
+      vibeCode: 'minimal-max',
       utmSource: 'twitter',
-      utmCampaign: 'marcus_desk',
-      referrerRules: JSON.stringify(['x.com', 'twitter.com', 'substack.com']),
-      preferredCta: 'Upgrade Your Workflow',
+      utmCampaign: 'max_calm',
+      referrerRules: JSON.stringify(['x.com', 'twitter.com']),
+      preferredCta: 'Explore Calm Spaces',
       brandVoice: 'Calm precision. Zero noise. Only what matters.',
-      heroBanner: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1200&q=80',
+      heroBanner: '/images/hero-minimal-max.jpg',
+      copyOverrides: JSON.stringify({
+        headline: 'Essential Living Space Edit by Max',
+        subheadline: 'Calm tactile objects crafted from linen, stone, and unlacquered raw materials.',
+        ctaText: 'Explore Calm Spaces',
+        heroImage: '/images/hero-minimal-max.jpg',
+        offer: 'Enjoy 15% off deliberate essentials with code CALM15',
+        bundleText: 'Quiet Morning Essentials Set · 15% Off',
+        discountCode: 'CALM15',
+        discountPercent: 15,
+        testimonials: [
+          {
+            quote: 'Zero visual noise. Every piece here earned its right to exist in a deliberate home.',
+            author: 'Max Sterling',
+            role: 'Architectural Minimalist',
+          },
+          {
+            quote: 'The ceramic mug and linen throw transformed my morning routine into a quiet ritual.',
+            author: 'Elena Lin',
+            role: 'Industrial Designer',
+          },
+        ],
+      }),
       createdAt: now,
     },
     {
-      id: 'cr_lux',
-      siteId: 'site_demo',
-      name: 'Elena Rostova',
-      handle: '@elenalux',
-      niche: 'Quiet Luxury & High Fashion',
-      audience: 'Ultra-high-net-worth curators',
-      interests: JSON.stringify(['Haute Horlogerie', 'Private Aviation', 'Bespoke Tailoring']),
+      id: 'cr_luxe_lena',
+      siteId: 'site_aurora',
+      slug: 'luxe-lena',
+      displayName: 'Lena Rostova',
+      name: 'Lena Rostova',
+      handle: '@luxelena',
+      niche: 'Haute Beauty & Formulations',
+      audience: 'Luxury collectors, beauty formulators',
+      interests: JSON.stringify(['Private Aviation', 'Silk Rituals', 'Peptides']),
       tone: 'Sophisticated, hushed, timeless',
       aesthetic: 'Warm antique bronze, charcoal, serifs',
-      themeId: 'luxury',
-      vibeCode: 'lux2026',
+      themeId: 'theme_gold',
+      status: 'active',
+      vibeCode: 'luxe-lena',
       utmSource: 'youtube',
-      utmCampaign: 'elena_collection',
+      utmCampaign: 'lena_luxury',
       referrerRules: JSON.stringify(['youtube.com', 'vogue.com']),
-      preferredCta: 'Acquire The Private Edition',
+      preferredCta: 'Acquire Lena’s Private Reserve',
       brandVoice: 'Whispered authority. Timeless restraint. Absolute craft.',
-      heroBanner: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&q=80',
+      heroBanner: '/images/hero-luxe-lena.jpg',
+      copyOverrides: JSON.stringify({
+        headline: 'The Haute Beauty Sanctuary Curated by Lena',
+        subheadline: 'Potent peptide formulations and pure mulberry silk rituals designed for radiant rest.',
+        ctaText: 'Acquire Lena’s Private Reserve',
+        heroImage: '/images/hero-luxe-lena.jpg',
+        offer: 'Receive 25% privilege savings with code LUXE25',
+        bundleText: 'L’Édition Nocturne Luxury Suite · 25% Off',
+        discountCode: 'LUXE25',
+        discountPercent: 25,
+        testimonials: [
+          {
+            quote: 'Uncompromising formulation. The peptide serum delivers visible dermal clarity within days.',
+            author: 'Lena Rostova',
+            role: 'Beauty Director & Formulator',
+          },
+          {
+            quote: 'The 24k gold sonic roller is an indispensable staple in my backstage kit.',
+            author: 'Claire Delacroix',
+            role: 'Editorial Makeup Artist',
+          },
+        ],
+      }),
+      createdAt: now,
+    },
+    {
+      id: 'cr_techtom',
+      siteId: 'site_aurora',
+      slug: 'techtom',
+      displayName: 'Tom Zhao',
+      name: 'Tom Zhao',
+      handle: '@techtom',
+      niche: 'High-Density Gadgets & Audio',
+      audience: 'Hardware engineers, nomads, power users',
+      interests: JSON.stringify(['GaN Chargers', 'CNC Metal', 'Acoustics']),
+      tone: 'Analytical, fast, engineering-first',
+      aesthetic: 'Cyber navy, cyan accents, monospace',
+      themeId: 'theme_cyber',
+      status: 'active',
+      vibeCode: 'techtom',
+      utmSource: 'tiktok',
+      utmCampaign: 'tom_hardware',
+      referrerRules: JSON.stringify(['tiktok.com', 'news.ycombinator.com']),
+      preferredCta: 'Upgrade Your Hardware Stack',
+      brandVoice: 'Precision over hype. Measurable specs.',
+      heroBanner: '/images/hero-techtom.jpg',
+      copyOverrides: JSON.stringify({
+        headline: 'High-Density Desk & Travel Gear by Tom',
+        subheadline: 'Precision-machined power, smart thermal monitoring, and low-latency acoustic fidelity.',
+        ctaText: 'Upgrade Your Hardware Stack',
+        heroImage: '/images/hero-techtom.jpg',
+        offer: 'Deploy 10% code TECH10 on high-efficiency gadgets',
+        bundleText: 'Nomad Workstation Power Stack · 10% Off',
+        discountCode: 'TECH10',
+        discountPercent: 10,
+        testimonials: [
+          {
+            quote: '100W in a chassis this thin is unprecedented. Powers my entire remote rig seamlessly.',
+            author: 'Tom Zhao',
+            role: 'Hardware Engineer & Creator',
+          },
+          {
+            quote: 'The wireless earbuds have lowest latency I have measured on a portable setup.',
+            author: 'Devon Vance',
+            role: 'Systems Architect',
+          },
+        ],
+      }),
       createdAt: now,
     },
   ];
 
-  for (const c of creatorsData) {
+  for (const c of auroraCreators) {
     await db.insert(creators).values(c).onConflictDoNothing();
+    await db.insert(creators).values({ ...c, id: `${c.id}_demo`, siteId: 'site_demo' }).onConflictDoNothing();
   }
 
-  // Seed testimonials
-  const testimonialsData = [
+  // 5. Seed Campaigns for Aurora
+  const auroraCampaigns = [
     {
-      id: 'test_fit_1',
-      creatorId: 'cr_fit',
-      quote: 'This formula completely rewired my morning training blocks. Zero jitter crash, 100% clean output.',
-      author: 'Alex Rivera (Verified Athlete)',
-      image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80',
-      approved: true,
-      createdAt: now,
-    },
-    {
-      id: 'test_min_1',
-      creatorId: 'cr_min',
-      quote: 'Zero friction, zero bloat. The only gear on my desk that earned permanent real estate.',
-      author: 'Marcus Chen (Staff Architect)',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
-      approved: true,
-      createdAt: now,
-    },
-    {
-      id: 'test_lux_1',
-      creatorId: 'cr_lux',
-      quote: 'Impeccable craftsmanship. A rare harmony of artisanal discipline and understated grace.',
-      author: 'Elena Rostova (Luxury Editor)',
-      image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&q=80',
-      approved: true,
-      createdAt: now,
-    },
-  ];
-
-  for (const t of testimonialsData) {
-    await db.insert(testimonials).values(t).onConflictDoNothing();
-  }
-
-  // Seed campaigns
-  const campaignsData = [
-    {
-      id: 'cmp_fit',
-      siteId: 'site_demo',
-      creatorId: 'cr_fit',
-      name: 'Alex Rivera Spring Muscle Surge',
-      productUrl: 'https://store.example.com/products/hydro-fuel',
-      productTitle: 'Apex HydroFuel Electrolyte & ATP Stack',
-      productDescription: 'Raw cellular hydration matrix with 1000mg sodium, organic magnesium bisglycinate, and bio-fermented taurine.',
-      productImage: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&q=80',
-      productPrice: '$48.00 (Save 20% with code ALEX20)',
-      promoCode: 'ALEX20',
-      offer: '20% OFF Creator Exclusive Bundle + Free Shaker',
-      cta: 'Claim The Alex Rivera Stack',
-      hero: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=1200&q=80',
-      headline: 'Fuel Like Alex Rivera: Peak Athletic Performance',
-      subheadline: "The exact hydration and mitochondrial stack powering Alex's 5:00 AM heavy barbell sessions.",
-      testimonialIds: JSON.stringify(['test_fit_1']),
-      themeId: 'fitness-energy',
+      id: 'cmp_fitfiona',
+      siteId: 'site_aurora',
+      creatorId: 'cr_fitfiona',
+      name: 'Fiona Vance Conditioning Kit',
+      productUrl: 'http://localhost:3002/shop',
+      productTitle: 'Complete Conditioning Bundle',
+      productDescription: 'Heavy-gauge resistance system and shaker.',
+      productImage: '/images/hero-fitfiona.jpg',
+      productPrice: '$64.00',
+      promoCode: 'FIT20',
+      offer: 'Save 20% on Fiona’s Athletic Picks with code FIT20',
+      cta: 'Shop Fiona’s Training Kit',
+      hero: '/images/hero-fitfiona.jpg',
+      headline: 'High-Impact Performance Gear Curated by Fiona',
+      subheadline: 'Engineered training essentials tested across 500+ intense conditioning and barbell sessions.',
+      testimonialIds: '[]',
+      themeId: 'theme_energy',
       holdoutPct: 10,
       status: 'active',
       version: 1,
@@ -297,23 +616,23 @@ export async function seedDatabase() {
       updatedAt: now,
     },
     {
-      id: 'cmp_min',
-      siteId: 'site_demo',
-      creatorId: 'cr_min',
-      name: 'Marcus Chen Minimalist Workstation',
-      productUrl: 'https://store.example.com/products/desk-mat',
-      productTitle: 'Monolith Anodized Aluminum & Wool Desk Tray',
-      productDescription: 'CNC-milled single-block aerospace grade 6061 aluminum paired with charcoal Merino felt.',
-      productImage: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=800&q=80',
+      id: 'cmp_minimal_max',
+      siteId: 'site_aurora',
+      creatorId: 'cr_minimal_max',
+      name: 'Max Sterling Calm Living Edit',
+      productUrl: 'http://localhost:3002/shop',
+      productTitle: 'Quiet Morning Essentials Set',
+      productDescription: 'Ceramic mug and pure linen throw.',
+      productImage: '/images/hero-minimal-max.jpg',
       productPrice: '$85.00',
-      promoCode: 'MARCUS15',
-      offer: '15% OFF for Marcus Chen Subscribers',
-      cta: 'Explore The Minimal Desk',
-      hero: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1200&q=80',
-      headline: 'Designed with Marcus Chen: Zero Distraction Workspaces',
-      subheadline: 'Eliminate visual clutter. Engineered for developers and creators who demand absolute focus.',
-      testimonialIds: JSON.stringify(['test_min_1']),
-      themeId: 'minimalist',
+      promoCode: 'CALM15',
+      offer: 'Enjoy 15% off deliberate essentials with code CALM15',
+      cta: 'Explore Calm Spaces',
+      hero: '/images/hero-minimal-max.jpg',
+      headline: 'Essential Living Space Edit by Max',
+      subheadline: 'Calm tactile objects crafted from linen, stone, and unlacquered raw materials.',
+      testimonialIds: '[]',
+      themeId: 'theme_calm',
       holdoutPct: 10,
       status: 'active',
       version: 1,
@@ -321,23 +640,47 @@ export async function seedDatabase() {
       updatedAt: now,
     },
     {
-      id: 'cmp_lux',
-      siteId: 'site_demo',
-      creatorId: 'cr_lux',
-      name: 'Elena Rostova Private Reserve',
-      productUrl: 'https://store.example.com/products/heritage-serum',
-      productTitle: 'Maison Royale 24K Botanical Elixir',
-      productDescription: 'Cold-pressed Damask rose petals suspended in French squalane and colloidal bio-gold.',
-      productImage: 'https://images.unsplash.com/photo-1608248597359-576485890e0c?w=800&q=80',
-      productPrice: '$240.00',
-      promoCode: 'ELENA',
-      offer: 'Complimentary Bespoke Travel Atomizer',
-      cta: "Acquire Elena's Private Reserve",
-      hero: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&q=80',
-      headline: 'The Elena Rostova Edit: Uncompromising Craftsmanship',
-      subheadline: 'Curated exclusively for patrons of quiet elegance. Limited batch formulation.',
-      testimonialIds: JSON.stringify(['test_lux_1']),
-      themeId: 'luxury',
+      id: 'cmp_luxe_lena',
+      siteId: 'site_aurora',
+      creatorId: 'cr_luxe_lena',
+      name: 'Lena Rostova Haute Beauty Suite',
+      productUrl: 'http://localhost:3002/shop',
+      productTitle: 'L’Édition Nocturne Luxury Suite',
+      productDescription: 'Peptide dermal elixir and 24k sonic roller.',
+      productImage: '/images/hero-luxe-lena.jpg',
+      productPrice: '$180.00',
+      promoCode: 'LUXE25',
+      offer: 'Receive 25% privilege savings with code LUXE25',
+      cta: 'Acquire Lena’s Private Reserve',
+      hero: '/images/hero-luxe-lena.jpg',
+      headline: 'The Haute Beauty Sanctuary Curated by Lena',
+      subheadline: 'Potent peptide formulations and pure mulberry silk rituals designed for radiant rest.',
+      testimonialIds: '[]',
+      themeId: 'theme_gold',
+      holdoutPct: 10,
+      status: 'active',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'cmp_techtom',
+      siteId: 'site_aurora',
+      creatorId: 'cr_techtom',
+      name: 'Tom Zhao High-Density Desk Gear',
+      productUrl: 'http://localhost:3002/shop',
+      productTitle: 'Nomad Workstation Power Stack',
+      productDescription: '100W GaN power matrix and low-latency acoustic buds.',
+      productImage: '/images/hero-techtom.jpg',
+      productPrice: '$120.00',
+      promoCode: 'TECH10',
+      offer: 'Deploy 10% code TECH10 on high-efficiency gadgets',
+      cta: 'Upgrade Your Hardware Stack',
+      hero: '/images/hero-techtom.jpg',
+      headline: 'High-Density Desk & Travel Gear by Tom',
+      subheadline: 'Precision-machined power, smart thermal monitoring, and low-latency acoustic fidelity.',
+      testimonialIds: '[]',
+      themeId: 'theme_cyber',
       holdoutPct: 10,
       status: 'active',
       version: 1,
@@ -346,8 +689,9 @@ export async function seedDatabase() {
     },
   ];
 
-  for (const cmp of campaignsData) {
+  for (const cmp of auroraCampaigns) {
     await db.insert(campaigns).values(cmp).onConflictDoNothing();
+    await db.insert(campaigns).values({ ...cmp, id: `${cmp.id}_demo`, siteId: 'site_demo' }).onConflictDoNothing();
     await db
       .insert(campaignVersions)
       .values({ id: `${cmp.id}_v1`, campaignId: cmp.id, version: 1, snapshot: JSON.stringify(cmp), createdAt: now })

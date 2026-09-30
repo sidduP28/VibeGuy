@@ -4,8 +4,20 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./holdout": {
+      "types": "./dist/holdout.d.ts",
+      "import": "./dist/holdout.mjs",
+      "require": "./dist/holdout.js"
+    }
+  },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "build": "tsup src/index.ts src/holdout.ts --format cjs,esm --dts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

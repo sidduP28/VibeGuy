@@ -2,29 +2,62 @@ import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
 
 export const sites = sqliteTable('sites', {
   id: text('id').primaryKey(),
-  domains: text('domains').notNull(), // JSON string array
-  publicKey: text('public_key').notNull().unique(),
+  ownerId: text('owner_id').notNull().default('owner_default'),
+  name: text('name').notNull().default('My Store'),
+  domain: text('domain').notNull().default('http://localhost:3002'), // origin URL e.g. http://localhost:3002
+  siteKey: text('site_key').notNull().unique(), // public key used by SDK
+  defaultThemeId: text('default_theme_id'), // nullable FK to themes
+  status: text('status').notNull().default('active'), // 'active' | 'archived'
+  domains: text('domains').notNull().default('[]'), // JSON string array (backward compat)
+  publicKey: text('public_key').notNull(), // backward compat alias for siteKey
   killSwitch: integer('kill_switch', { mode: 'boolean' }).notNull().default(false),
   selectorMap: text('selector_map'), // JSON string record
   createdAt: text('created_at').notNull(),
 });
 
+export const siteDna = sqliteTable('site_dna', {
+  id: text('id').primaryKey(),
+  siteId: text('site_id').notNull().unique(),
+  brandName: text('brand_name').notNull().default(''),
+  palette: text('palette').notNull().default('[]'), // JSON array of hex strings
+  fonts: text('fonts').notNull().default('[]'), // JSON array of font names
+  tone: text('tone').notNull().default(''),
+  audience: text('audience').notNull().default(''),
+  notes: text('notes').notNull().default(''),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const themes = sqliteTable('themes', {
+  id: text('id').primaryKey(),
+  siteId: text('site_id').notNull(), // FK to sites
+  name: text('name').notNull(),
+  tokens: text('tokens').notNull(), // JSON string of ThemeTokens (bg, fg, accent, fontHeading, fontBody, radius, space, etc.)
+  isBuiltin: integer('is_builtin', { mode: 'boolean' }).notNull().default(false),
+  createdAt: text('created_at').notNull().default(''),
+});
+
 export const creators = sqliteTable('creators', {
   id: text('id').primaryKey(),
-  siteId: text('site_id').notNull(),
-  name: text('name').notNull(),
-  handle: text('handle').notNull(),
-  niche: text('niche').notNull(),
-  audience: text('audience').notNull(),
-  interests: text('interests').notNull(), // JSON string array
-  tone: text('tone').notNull(),
-  aesthetic: text('aesthetic').notNull(),
-  themeId: text('theme_id').notNull(),
-  vibeCode: text('vibe_code').notNull().unique(),
+  siteId: text('site_id').notNull(), // FK to sites
+  slug: text('slug').notNull(), // unique per site
+  displayName: text('display_name').notNull(),
+  themeId: text('theme_id'), // nullable FK to themes
+  copyOverrides: text('copy_overrides').notNull().default('{}'), // JSON string of copy overrides
+  status: text('status').notNull().default('active'), // 'active' | 'paused'
+  // Compatibility fields
+  name: text('name').notNull().default(''),
+  handle: text('handle').notNull().default(''),
+  niche: text('niche').notNull().default(''),
+  audience: text('audience').notNull().default(''),
+  interests: text('interests').notNull().default('[]'), // JSON string array
+  tone: text('tone').notNull().default(''),
+  aesthetic: text('aesthetic').notNull().default(''),
+  vibeCode: text('vibe_code').notNull().default(''),
   utmSource: text('utm_source').notNull().default(''),
   utmCampaign: text('utm_campaign').notNull().default(''),
   referrerRules: text('referrer_rules').notNull().default('[]'), // JSON string array
-  preferredCta: text('preferred_cta').notNull(),
+  preferredCta: text('preferred_cta').notNull().default(''),
   brandVoice: text('brand_voice').notNull().default(''),
   heroBanner: text('hero_banner').notNull().default(''),
   createdAt: text('created_at').notNull(),
@@ -38,13 +71,6 @@ export const testimonials = sqliteTable('testimonials', {
   image: text('image').notNull(),
   approved: integer('approved', { mode: 'boolean' }).notNull().default(true),
   createdAt: text('created_at').notNull(),
-});
-
-export const themes = sqliteTable('themes', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  tokens: text('tokens').notNull(), // JSON string of ThemeTokens
-  isBuiltin: integer('is_builtin', { mode: 'boolean' }).notNull().default(true),
 });
 
 export const campaigns = sqliteTable('campaigns', {

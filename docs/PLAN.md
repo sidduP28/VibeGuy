@@ -314,3 +314,30 @@
 ### Task 7.3: Documentation & Final Evidence Audit
 - [x] Fill README.md with Mermaid architecture diagrams, guardrail evidence table, setup instructions, deploy instructions, and measured performance metrics.
 - [x] Print final verification checklist.
+
+---
+
+## Phase 8: Aurora Storefront (`demo-stores/aurora`)
+**Acceptance Test:** `pnpm --filter aurora dev` runs on port 3002. Reskins copy, hero, slots, and CSS variables (--bg, --fg, --accent) with 0 CLS across 4 creators (`fitfiona`, `minimal-max`, `luxe-lena`, `techtom`). Playwright tests pass for persistence, mock checkout, shopper login, holdout, and sanitization.
+
+### Task 8.1: Scaffolding, Data & Local Assets
+- [x] Scaffold `demo-stores/aurora` (Next.js 15, Tailwind, TS). Register scripts (`pnpm demo:store`).
+- [x] Implement `data/products.ts` (16 items in 4 categories with local SVG icons/images & creator affinities) and `data/creators.ts`.
+- [x] Implement `data/users.ts` with 3 seeded shoppers (`asha@demo.dev`, `ravi@demo.dev`, `meera@demo.dev`) guarded by `DEMO_MODE=true`.
+
+### Task 8.2: Root Vibe Provider, Theme Engine & Slots
+- [x] Server resolver in `app/layout.tsx` parsing `?vibe`, `?ref`, and `utm_content` against allowlist with cookie/session persistence.
+- [x] Set `data-vibe-ssr="1"` and `data-theme` on `<html>` mapping to WCAG AA CSS variables (`--bg`, `--fg`, `--accent`, `--font-heading`).
+- [x] Wrap with `<VibeProvider initialProfile={profile}>` with 6 slots (`headline`, `subheadline`, `cta`, `hero-image`, `offer`, `testimonial`, `bundle`).
+
+### Task 8.3: Pages & Commerce Flows
+- [x] `/` (Home): Hero, category strip, featured products prioritized by creator affinity, testimonial, offer banner.
+- [x] `/shop` and `/product/[id]`: Product catalog with category filter, search, detail view, and "Add to Cart".
+- [x] `/cart`, `/checkout`, `/order-success`: Cart drawer/page, discount code validation (FIT20, CALM15, LUXE25, TECH10), mock checkout.
+- [x] `/login` and `/account`: Mock shopper authentication with 1-click "Use demo account" button and order history.
+- [x] `/creators`: Directory listing all creator links (copy/open buttons, fallback test, XSS test), floating preview switcher, `?vibe_debug=1`.
+
+### Task 8.4: Attribution & Automated Testing
+- [x] Send `impression`, `view_product`, `add_to_cart`, `purchase` via `navigator.sendBeacon` to `/api/collect` with 10% holdout enforcement.
+- [x] Write Playwright tests in `tests/e2e/aurora.spec.ts`: creator reskinning, 0 CLS, cookie persistence, checkout discount, holdout group, XSS safety.
+

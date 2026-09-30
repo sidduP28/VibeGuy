@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 interface VibeResult {
   url: string;
@@ -8,6 +9,17 @@ interface VibeResult {
   fonts: string[];
   ctaStyle: { radius: string };
   copyTone: string;
+  theme?: {
+    id: string;
+    siteId: string;
+    name: string;
+    tokens: any;
+  };
+}
+
+interface SiteOption {
+  id: string;
+  name: string;
 }
 
 export default function ExtractorPage() {
@@ -16,17 +28,37 @@ export default function ExtractorPage() {
   const [result, setResult] = useState<VibeResult | null>(null);
   const [error, setError] = useState('');
   const [history, setHistory] = useState<VibeResult[]>([]);
+  
+  const [sites, setSites] = useState<SiteOption[]>([]);
+  const [selectedSiteId, setSelectedSiteId] = useState<string>('site_aurora');
+  const [addingTheme, setAddingTheme] = useState(false);
+  const [addedSuccess, setAddedSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/sites')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.sites && Array.isArray(data.sites)) {
+          setSites(data.sites);
+          if (data.sites.length > 0) {
+            setSelectedSiteId(data.sites[0].id);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   async function extract() {
     if (!url) return;
     setLoading(true);
     setError('');
     setResult(null);
+    setAddedSuccess(null);
     try {
       const res = await fetch('/api/extract/vibe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, siteId: selectedSiteId }),
       });
       const data = await res.json();
       if (data.error) {
@@ -36,9 +68,67 @@ export default function ExtractorPage() {
         setHistory((h) => [data, ...h.slice(0, 4)]);
       }
     } catch {
-      setError('Network error');
+      setError('Network error during extraction');
     }
     setLoading(false);
+  }
+
+  async function addToThemeLab() {
+    if (!result) return;
+    setAddingTheme(true);
+    setAddedSuccess(null);
+    try {
+      let host = 'Brand';
+      try {
+        const full = /^https?:\/\//i.test(result.url) ? result.url : `https://${result.url}`;
+        host = new URL(full).hostname.replace(/^www\./, '').split('.')[0];
+        host = host.charAt(0).toUpperCase() + host.slice(1);
+      } catch {}
+
+      const themeName = `${host} Aesthetic`;
+      const bg = result.palette[2] || (result.palette[0]?.startsWith('#f') ? result.palette[0] : '#ffffff');
+      const fg = result.palette[0] && !result.palette[0].startsWith('#f') ? result.palette[0] : '#0f172a';
+      const accent = result.palette[1] || '#2563eb';
+      const fontHeading = result.fonts[0] || 'system-ui, sans-serif';
+      const fontBody = result.fonts[1] || result.fonts[0] || 'system-ui, sans-serif';
+
+      const tokens = {
+        bg,
+        fg,
+        accent,
+        cardBg: bg === '#ffffff' ? '#f8fafc' : bg,
+        border: fg === '#ffffff' ? '#334155' : '#e2e8f0',
+        muted: '#64748b',
+        fontHeading,
+        fontBody,
+        radius: result.ctaStyle?.radius || '6px',
+        space: '16px',
+        copyDefaults: {
+          headline: `Engineered by ${themeName}`,
+          subheadline: result.copyTone,
+          ctaText: 'Explore Collection',
+        },
+      };
+
+      const res = await fetch(`/api/sites/${selectedSiteId}/themes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: themeName,
+          tokens,
+        }),
+      });
+
+      if (res.ok) {
+        setAddedSuccess(themeName);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setError(err.error || 'Failed to add theme to Theme Lab');
+      }
+    } catch {
+      setError('Network error saving theme');
+    }
+    setAddingTheme(false);
   }
 
   return (
@@ -46,17 +136,16 @@ export default function ExtractorPage() {
       <p className="kicker">Reference Extractor</p>
       <h1>Vibe Extractor</h1>
       <p className="lede">
-        Paste a public URL to extract its color palette, fonts, CTA styles, and copy tone. 
-        All fetches are SSRF-guarded — private IPs and DNS rebinding are blocked.
+        Paste any public website URL to extract its color palette, typography hierarchy, CTA geometry, and brand tone.
       </p>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && extract()}
-          placeholder="https://stripe.com — any public https:// URL"
-          style={{ flex: 1 }}
+          placeholder="https://apple.com, stripe.com, or any public brand URL"
+          style={{ flex: 1, minWidth: 280 }}
         />
         <button className="btn gold" onClick={extract} disabled={loading}>
           {loading ? 'Extracting…' : 'Extract vibe'}
@@ -69,20 +158,58 @@ export default function ExtractorPage() {
         </div>
       )}
 
+      {addedSuccess && (
+        <div style={{ padding: '12px 16px', background: 'rgba(34,197,94,0.1)', border: '1px solid var(--ok)', borderRadius: 4, marginBottom: 20, fontSize: 13, color: 'var(--fg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <span>
+            <strong>✓ Added &quot;{addedSuccess}&quot; to Theme Lab!</strong>
+          </span>
+          <Link href={`/sites/${selectedSiteId}/themes`} className="btn ghost" style={{ fontSize: 12, padding: '4px 10px' }}>
+            Open in Theme Lab &rarr;
+          </Link>
+        </div>
+      )}
+
       {result && (
         <div className="card" style={{ marginBottom: 24 }}>
-          <div className="row" style={{ marginBottom: 12 }}>
-            <p className="kicker" style={{ margin: 0 }}>Extracted: {result.url}</p>
-            <span className="pill" style={{ fontSize: 11 }}>{result.copyTone}</span>
+          <div className="row" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+            <div>
+              <p className="kicker" style={{ margin: 0 }}>Extracted: {result.url}</p>
+              <span className="pill" style={{ fontSize: 11, marginTop: 4, display: 'inline-block' }}>{result.copyTone}</span>
+            </div>
+            
+            {/* Store Target & Add Button */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {sites.length > 0 && (
+                <select
+                  value={selectedSiteId}
+                  onChange={(e) => setSelectedSiteId(e.target.value)}
+                  style={{ fontSize: 12, padding: '6px 10px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--fg)' }}
+                >
+                  {sites.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <button
+                className="btn gold"
+                onClick={addToThemeLab}
+                disabled={addingTheme}
+                style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <span>{addingTheme ? 'Adding...' : '+ Add to Theme Lab'}</span>
+              </button>
+            </div>
           </div>
 
-          <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 16 }}>
             <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>COLOR PALETTE</p>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {result.palette.map((col, i) => (
-                <div key={i} title={col} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                  <div style={{ width: 36, height: 36, background: col, borderRadius: 2, border: '1px solid var(--rule)' }} />
-                  <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--muted)' }}>{col}</span>
+                <div key={i} title={col} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{ width: 44, height: 44, background: col, borderRadius: 4, border: '1px solid var(--rule)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }} />
+                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)' }}>{col}</span>
                 </div>
               ))}
               {result.palette.length === 0 && (
@@ -91,7 +218,7 @@ export default function ExtractorPage() {
             </div>
           </div>
 
-          <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 16 }}>
             <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>FONTS</p>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {result.fonts.map((f, i) => (
@@ -104,8 +231,8 @@ export default function ExtractorPage() {
           </div>
 
           <div>
-            <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>CTA STYLE</p>
-            <span className="pill">border-radius: {result.ctaStyle.radius}</span>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>CTA GEOMETRY</p>
+            <span className="pill">border-radius: {result.ctaStyle?.radius || result.theme?.tokens?.radius || '6px'}</span>
           </div>
         </div>
       )}
@@ -117,7 +244,7 @@ export default function ExtractorPage() {
             {history.slice(1).map((r, i) => (
               <div key={i} className="card" style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ display: 'flex', gap: 4 }}>
-                  {r.palette.slice(0, 5).map((col, j) => (
+                  {(r.palette || []).slice(0, 5).map((col, j) => (
                     <div key={j} style={{ width: 20, height: 20, background: col, borderRadius: 2, border: '1px solid var(--rule)' }} />
                   ))}
                 </div>

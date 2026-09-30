@@ -13,9 +13,13 @@ export interface VibeSlotProps extends React.HTMLAttributes<HTMLElement> {
   alt?: string;
 }
 
-/** Returns true when `value` looks like an absolute image URL. */
+/** Returns true when `value` looks like an image URL or local image path. */
 function isImageUrl(value: unknown): value is string {
   if (typeof value !== 'string') return false;
+  if (value.startsWith('/') && /\.(jpe?g|png|gif|webp|avif|svg)(\?.*)?$/i.test(value)) {
+    return true;
+  }
+  if (value.startsWith('data:image/')) return true;
   try {
     const url = new URL(value);
     if (!['http:', 'https:'].includes(url.protocol)) return false;

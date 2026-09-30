@@ -1,12 +1,22 @@
 import { calculateTwoProportionZTest } from '@vibe/core';
 import { ensureSchema, getDb } from '../db';
 import { events } from '../db/schema';
+import { eq, and } from 'drizzle-orm';
 
-export async function computeUplift(campaignId?: string) {
+export async function computeUplift(campaignId?: string, siteId?: string) {
   await ensureSchema();
   const db = getDb();
-  const rows = await db.select().from(events);
-  const scoped = campaignId ? rows.filter((r) => r.campaignId === campaignId) : rows;
+  
+  let scoped;
+  if (siteId && campaignId) {
+    scoped = await db.select().from(events).where(and(eq(events.siteId, siteId), eq(events.campaignId, campaignId)));
+  } else if (siteId) {
+    scoped = await db.select().from(events).where(eq(events.siteId, siteId));
+  } else if (campaignId) {
+    scoped = await db.select().from(events).where(eq(events.campaignId, campaignId));
+  } else {
+    scoped = await db.select().from(events).limit(500);
+  }
 
   const controlVisitors = new Set(
     scoped.filter((r) => r.variant === 'control' && r.type === 'view').map((r) => r.visitorId)
@@ -55,4 +65,8 @@ export async function computeUplift(campaignId?: string) {
     },
     log: scoped.slice(-40).reverse(),
   };
+}
+
+export async function computeUpliftForSite(siteId: string, campaignId?: string) {
+  return computeUplift(campaignId, siteId);
 }

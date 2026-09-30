@@ -4,33 +4,49 @@ const MAX_BYTES = 2_000_000;
 const TIMEOUT_MS = 5_000;
 
 export async function fetchPublicHtml(rawUrl: string): Promise<string> {
-  const parsed = ExtractUrlSchema.safeParse({ url: rawUrl });
+  let targetUrl = rawUrl.trim();
+  if (!/^https?:\/\//i.test(targetUrl)) {
+    targetUrl = `https://${targetUrl}`;
+  }
+
+  const parsed = ExtractUrlSchema.safeParse({ url: targetUrl });
   if (!parsed.success) throw new Error('invalid_url');
-  const safe = sanitizeHttpsUrl(parsed.data.url);
+  let safe = sanitizeHttpsUrl(parsed.data.url);
   if (!safe) throw new Error('https_only');
   await validateUrlForSSRF(safe);
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-  try {
-    const res = await fetch(safe, {
-      signal: ctrl.signal,
-      redirect: 'manual',
-      headers: { 'user-agent': 'VibeGuyExtractor/1.0' },
-    });
-    if (res.status >= 300 && res.status < 400) {
-      const loc = res.headers.get('location');
-      if (!loc) throw new Error('bad_redirect');
-      const next = new URL(loc, safe).toString();
-      await validateUrlForSSRF(next);
-      throw new Error('redirect_blocked');
+  let redirects = 0;
+  while (redirects < 4) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+    try {
+      const res: Response = await fetch(safe, {
+        signal: ctrl.signal,
+        redirect: 'manual',
+        headers: {
+          'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+      });
+
+      if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get('location');
+        if (!loc) throw new Error('bad_redirect');
+        safe = new URL(loc, safe).toString();
+        await validateUrlForSSRF(safe);
+        redirects++;
+        continue;
+      }
+
+      const buf = await res.arrayBuffer();
+      if (buf.byteLength > MAX_BYTES) throw new Error('payload_too_large');
+      return new TextDecoder().decode(buf);
+    } finally {
+      clearTimeout(timer);
     }
-    const buf = await res.arrayBuffer();
-    if (buf.byteLength > MAX_BYTES) throw new Error('payload_too_large');
-    return new TextDecoder().decode(buf);
-  } finally {
-    clearTimeout(timer);
   }
+
+  throw new Error('too_many_redirects');
 }
 
 export function extractProductMeta(html: string, pageUrl: string) {

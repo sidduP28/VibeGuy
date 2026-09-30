@@ -47,3 +47,15 @@
   - Playwright E2E suites: `personalization.spec.ts`, `guardrails.spec.ts`, `demo-stores.spec.ts`.
   - GitHub Actions CI workflow (`.github/workflows/ci.yml`).
   - Comprehensive documentation (`README.md`) with Mermaid diagrams and verified metrics.
+- [x] Phase 8: Multi-Tenant Architecture & Aurora Storefront
+  - Multi-tenant DB schema: `sites`, `site_dna`, site-scoped `creators`, `themes`, `campaigns`, `events`.
+  - Console redesigned: `/sites` top-level directory, scoped site workspaces (`/sites/[siteId]/...` for Overview, Creators, Campaigns, DNA, Theme Lab, Builder, Uplift). Removed old global `/creators`.
+  - Storefront dynamic config: Aurora (`demo-stores/aurora` on port 3002) as Site #1 (`pk_live_aurora_2026`) loading config via `/api/sites/config?site_key=...` with 30s TTL, fallback resilience, dynamic CSS variables via `themeToCssVars(activeTheme)`, dynamic `data-theme`, and draft theme overrides.
+  - Site Theme Lab: token editing, WCAG AA contrast check, Set as Site Theme (`sites.default_theme_id`), duplicate, in-use delete blocker (400 `theme_in_use`), and Vibe Extractor auto-save to site themes.
+  - Campaign Builder: Theme Lab theme selector (no freeform string aesthetic inputs), saves overrides at campaign level without mutating base themes, live iframe preview (`${site.origin}/?vibe=${slug}&preview=1`).
+  - Verification:
+    - 55 unit tests passing across 12 test files (`pnpm test`).
+    - SDK G1 Bundle Size: 7.46 KB raw (< 3072 bytes gzipped) -> PASS.
+    - 30 Playwright E2E tests passing (`npx playwright test`) in 39.7s covering multi-tenant isolation, theme application, in-use deletion blocks, holdout, session persistence, CLS < 0.01, and XSS sanitization.
+    - Zero TypeScript errors (`tsc --noEmit`) on console and aurora storefront.
+

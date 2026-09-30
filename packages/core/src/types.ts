@@ -72,10 +72,28 @@ export interface Campaign {
 
 export interface SiteConfig {
   id: string;
+  ownerId?: string;
+  name?: string;
+  domain?: string;
   domains: string[];
   publicKey: string;
+  siteKey?: string;
+  defaultThemeId?: string | null;
+  status?: string;
   killSwitch: boolean;
   selectorMap?: Record<string, string>; // CSS selector -> slot name
+}
+
+export interface SiteDna {
+  id?: string;
+  siteId: string;
+  brandName: string;
+  palette: string[];
+  fonts: string[];
+  tone: string;
+  audience: string;
+  notes: string;
+  updatedAt?: string;
 }
 
 export interface TriggerResult {
@@ -86,17 +104,29 @@ export interface TriggerResult {
 
 export interface ThemeTokens {
   id: string;
+  siteId?: string;
   name: string;
+  bg?: string;
+  fg?: string;
+  accent?: string;
+  cardBg?: string;
+  border?: string;
+  muted?: string;
   fontHeading: string;
   fontBody: string;
-  primaryColor: string;
-  primaryColorHover: string;
-  backgroundColor: string;
-  cardBackgroundColor: string;
-  textColor: string;
-  textMutedColor: string;
-  accentColor: string;
-  borderRadius: string;
+  fontSize?: string;
+  radius?: string;
+  space?: string;
+  copyDefaults?: Record<string, string>;
+  // Backwards compatibility aliases
+  primaryColor?: string;
+  primaryColorHover?: string;
+  backgroundColor?: string;
+  cardBackgroundColor?: string;
+  textColor?: string;
+  textMutedColor?: string;
+  accentColor?: string;
+  borderRadius?: string;
   imageTreatment?: 'rounded' | 'sharp' | 'pill';
 }
 

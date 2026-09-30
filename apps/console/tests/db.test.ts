@@ -10,9 +10,7 @@ describe('Console Database Layer', () => {
 
   it('initializes and seeds demo site', async () => {
     const db = getDb();
-    const site = await db.query.sites.findFirst({
-      where: eq(sites.id, 'site_demo'),
-    });
+    const site = (await db.select().from(sites).where(eq(sites.id, 'site_demo')))[0];
     expect(site).toBeDefined();
     expect(site?.publicKey).toBe('pk_live_vibepersonalize_2026');
     expect(site?.killSwitch).toBe(false);
@@ -65,9 +63,7 @@ describe('Console Database Layer', () => {
       timestamp: Date.now(),
     });
 
-    const evt = await db.query.events.findFirst({
-      where: eq(events.id, testId),
-    });
+    const evt = (await db.select().from(events).where(eq(events.id, testId)))[0];
     expect(evt).toBeDefined();
     expect(evt?.variant).toBe('personalized');
     expect(evt?.execMs).toBe(12);

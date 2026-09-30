@@ -285,6 +285,8 @@ export function initVibeSdk(): void {
   }
 }
 
+
+
 // Auto-run if running directly in browser head
 if (typeof window !== 'undefined') {
   initVibeSdk();

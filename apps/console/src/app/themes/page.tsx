@@ -16,7 +16,7 @@ export default function ThemesPage() {
     return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
   }
 
-  function isHex(s: string) { return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(s); }
+  function isHex(s?: string): s is string { return typeof s === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(s); }
 
   return (
     <div>

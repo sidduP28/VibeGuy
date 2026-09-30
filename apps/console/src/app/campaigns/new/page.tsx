@@ -27,7 +27,7 @@ export default async function NewCampaignPage({
     vibeCode: c.vibeCode,
     utmSource: c.utmSource,
     utmCampaign: c.utmCampaign,
-    themeId: c.themeId,
+    themeId: c.themeId || 'minimalist',
   }));
 
   return (

@@ -12,13 +12,18 @@ export default async function VibeDNAPage() {
 
   return (
     <div>
-      <p className="kicker">VibeDNA Hub</p>
-      <h1>Creator Profiles</h1>
+      <p className="kicker">VibeDNA Hub · VibeGuy</p>
+      <h1>Creator Profiles &amp; Vibe Links</h1>
       <p className="lede">
-        Each creator has a tone, aesthetic, preferred CTA, and brand voice that seeds all personalization.
-        Edit below and re-generate the SDK bundle from Installer.
+        Each creator has a tone, aesthetic, preferred CTA, and brand voice that seeds all
+        personalization. Use the <strong>Vibe Links</strong> tab to copy shareable creator
+        URLs — they auto-reskin the Aurora Store at{' '}
+        <a href="http://localhost:3002" target="_blank" rel="noopener" style={{ color: 'var(--gold)' }}>
+          localhost:3002
+        </a>
+        .
       </p>
-      <VibeDNAEditor creators={creatorRows} testimonials={testimonialRows} />
+      <VibeDNAEditor creators={creatorRows as any} testimonials={testimonialRows} />
     </div>
   );
 }
