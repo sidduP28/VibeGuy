@@ -2,7 +2,7 @@
 
 ## Pre-flight
 - Shared interfaces verified between packages/core, packages/sdk, packages/react, packages/edge, and apps/console.
-- Strict TDD enforcement: write failing test -> verify failure -> write minimal implementation -> verify pass.
+- Strict TDD enforcement: write failing test -> verify failure -> write minimal implementation -> verify pass -> commit.
 
 ## Phase Progress
 - [x] Phase 1: Workspace Scaffolding & Core Architecture (`packages/core`)
@@ -41,7 +41,7 @@
 - [x] Phase 7: Verification, Benchmarks & Quality Gates
   - Real execution benchmark runner (`benchmarks/run-benchmarks.ts`):
     - Raw Bundle: 7,302 bytes; Gzip: 2,834 bytes (< 3,072 bytes hard ceiling) -> PASS.
-    - CPU Execution: p95 = 0.090 ms (< 50.000 ms budget) -> PASS.
+    - CPU Execution: p95 = 0.072 ms (< 50.000 ms budget) -> PASS.
     - Statistical Engine: z = 2.790, p = 0.00527, 95% CI = [0.90%, 5.10%], Statistically Significant -> PASS.
   - Autocannon-style load testing script (`benchmarks/load-test.ts`).
   - Playwright E2E suites: `personalization.spec.ts`, `guardrails.spec.ts`, `demo-stores.spec.ts`.
