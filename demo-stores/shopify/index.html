@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Apex Performance Store — Generic</title>
+  <meta name="description" content="Premium performance supplements and gear for serious athletes.">
+  <link rel="canonical" href="https://store.example.com/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+  <!-- VibePersonalize SDK — personalization happens inside approved [data-vibe-slot] elements only -->
+  <!-- G4: title, canonical, meta never modified -->
+  <script src="http://localhost:3000/api/sdk/site_demo"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- HEADER (generic — no slots) -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">APEX</a>
+      <nav class="header-nav">
+        <a href="/collections">Collections</a>
+        <a href="/science">The Science</a>
+        <a href="/about">About</a>
+      </nav>
+      <div class="header-actions">
+        <a href="/cart" class="cart-btn">Cart (0)</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- OFFER BANNER — personalized slot -->
+  <div class="offer-banner" data-vibe-slot="offer"></div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-img-wrap" data-vibe-slot="hero-image">
+      <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1400&q=80" alt="Performance athlete" class="hero-img">
+    </div>
+    <div class="hero-content">
+      <p class="hero-kicker">New collection · 2026</p>
+      <h1 class="hero-headline" data-vibe-slot="headline">
+        Engineered for Those Who Never Stop.
+      </h1>
+      <p class="hero-sub" data-vibe-slot="subheadline">
+        Performance nutrition and gear built for athletes who demand more from every session.
+      </p>
+      <div class="hero-cta-row">
+        <a href="/collections/all" class="btn btn-primary" data-vibe-slot="cta">
+          Shop Collection
+        </a>
+        <a href="/science" class="btn btn-ghost">View the science</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRODUCT FEATURE -->
+  <section class="product-section">
+    <div class="product-inner">
+      <div class="product-img-col">
+        <img src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=700&q=80" alt="Product" class="product-img">
+      </div>
+      <div class="product-info-col">
+        <p class="product-kicker">Featured product</p>
+        <h2 class="product-title" data-vibe-slot="bundle">
+          Apex HydroFuel Electrolyte Stack
+        </h2>
+        <p class="product-price">$48.00</p>
+        <p class="product-desc">
+          Raw cellular hydration matrix with organic magnesium bisglycinate and bio-fermented taurine.
+          Stack with your pre-workout for maximum output.
+        </p>
+        <div class="product-cta-row">
+          <a href="/products/hydro-fuel" class="btn btn-primary" data-vibe-slot="cta">Add to Cart</a>
+          <span class="free-ship">Free shipping over $60</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIAL -->
+  <section class="testimonial-section">
+    <div class="testimonial-inner">
+      <blockquote class="testimonial-quote" data-vibe-slot="testimonial">
+        "This is exactly what I needed for my training. The quality speaks for itself."
+        <footer>— Verified Athlete</footer>
+      </blockquote>
+    </div>
+  </section>
+
+  <!-- FOOTER (generic — no slots) -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <p>© 2026 Apex Performance. VibePersonalize demo store. Slots: headline, subheadline, cta, hero-image, offer, bundle, testimonial.</p>
+      <p style="font-size:11px;opacity:.5;margin-top:4px">Generic page title and canonical never modified. Creator detection via ?vibe= or utm_source=</p>
+    </div>
+  </footer>
+
+</body>
+</html>
