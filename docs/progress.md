@@ -12,7 +12,10 @@
   - G1 Gate: 2,834 bytes gzip (< 3072 bytes budget, 0 dependencies).
   - G2-G5 Gates: bot detection, visibility-only prehide, textContent sanitization, decode-before-reveal image swap, 300ms fail-safe fallback.
   - Tests: 7 passed.
-- [ ] Phase 3: React SDK & Edge Adapter (`packages/react`, `packages/edge`)
+- [x] Phase 3: React SDK & Edge Adapter (`packages/react`, `packages/edge`)
+  - `@vibe/react`: VibeProvider, VibeSlot, useVibe with zero hydration mismatch.
+  - `@vibe/edge`: Cloudflare & Fastly compatible HTMLRewriter with bot bypass and `<html data-vibe-ssr="1">` marking.
+  - Tests: 5 passed (30 total).
 - [ ] Phase 4: Database Layer & Backend APIs (`apps/console`)
 - [ ] Phase 5: Marketer Console Frontend UI (`apps/console`)
 - [ ] Phase 6: Realistic Storefronts (`demo-stores/*`)
