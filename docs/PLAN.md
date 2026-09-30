@@ -1,8 +1,8 @@
-# VibePersonalize: Implementation Plan
+# VibeGuy: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build and ship VibePersonalize end-to-end: a high-performance creator personalization platform featuring a zero-latency in-head SDK (<3KB gzip, <50ms CPU, 0 CLS), full Marketer Console (Campaign Builder, Theme Lab, VibeDNA, Uplift Analytics with two-proportion z-test, VibePilot, Reference Extractor), React and Edge adapters, 3 realistic demo stores, and comprehensive automated test/benchmark gates.
+**Goal:** Build and ship VibeGuy end-to-end: a high-performance creator personalization platform featuring a zero-latency in-head SDK (<3KB gzip, <50ms CPU, 0 CLS), full Marketer Console (Campaign Builder, Theme Lab, VibeDNA, Uplift Analytics with two-proportion z-test, VibePilot, Reference Extractor), React and Edge adapters, 3 realistic demo stores, and comprehensive automated test/benchmark gates.
 
 **Architecture:** Monorepo with `packages/core` (logic, schemas, security, stats), `packages/sdk` (zero-dependency IIFE engine), `packages/react` (@vibe/react provider & slots), `packages/edge` (Cloudflare HTMLRewriter engine), `apps/console` (Next.js 15, Drizzle ORM, libSQL/Turso, Tailwind, shadcn), and `demo-stores` (Shopify, Webflow, Next.js).
 

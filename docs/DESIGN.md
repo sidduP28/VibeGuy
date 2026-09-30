@@ -1,8 +1,8 @@
-# VibePersonalize: System Architecture & Design Specification
+# VibeGuy: System Architecture & Design Specification
 **Topic #13: AI-Powered Dynamic Landing Page Personalizer | Hackzen 2026**
 
 ## 1. Executive Summary & Intent
-VibePersonalize solves the creator-to-commerce bounce crisis. Generic landing pages break emotional continuity when creator traffic lands. VibePersonalize bridges this with:
+VibeGuy solves the creator-to-commerce bounce crisis. Generic landing pages break emotional continuity when creator traffic lands. VibeGuy bridges this with:
 1. **Ultra-lightweight Zero-Latency In-Head SDK (<3KB gzip, <50ms CPU)**: Synchronously parses triggers (vibe param > UTM > referrer), matches baked-in creator profiles, swaps verified slots with zero CLS, and reports RUM telemetry.
 2. **Marketer Control Console**: Next.js App Router workspace with Campaign Builder, Theme Lab (8+ WCAG AA-verified token themes), VibeDNA asset libraries, Reference Extractor, VibePilot recommendations, and a Holdout Uplift statistical engine (two-proportion z-test).
 3. **Omni-Platform Runtime**: Support for Shopify, Webflow, and React/Next.js (@vibe/react), plus Edge Personalization via Cloudflare HTMLRewriter.
@@ -44,7 +44,7 @@ VibePersonalize solves the creator-to-commerce bounce crisis. Generic landing pa
 ---
 
 ## 3. Core Modules & Data Contracts
-- **VibePersonalize Core (`packages/core`)**: Shared types, Zod schemas, FNV-1a holdout hashing, two-proportion z-test confidence intervals, and strict SSRF-safe URL fetchers.
+- **VibeGuy Core (`packages/core`)**: Shared types, Zod schemas, FNV-1a holdout hashing, two-proportion z-test confidence intervals, and strict SSRF-safe URL fetchers.
 - **Engine SDK (`packages/sdk`)**: Self-contained IIFE bundle served at `/sdk/{siteId}.js`. Compiles site-specific active campaigns directly into payload with stale-while-revalidate caching. Zero external network requests needed before first paint.
 - **React Adapter (`packages/react`)**: `@vibe/react` providing `VibeProvider`, `VibeSlot`, `useVibe` hooks to ensure full React virtual DOM ownership without hydration mismatches.
 - **Console Application (`apps/console`)**: Next.js 15 App Router app with libSQL/Turso Drizzle ORM, high-density dark-mode analytics, split-screen campaign playground, and installer snippets.

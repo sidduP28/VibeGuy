@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 
-const SHOPIFY_SNIPPET = (siteId: string) => `{%- comment -%}VibePersonalize — paste in theme.liquid <head>{%- endcomment -%}
+const SHOPIFY_SNIPPET = (siteId: string) => `{%- comment -%}VibeGuy — paste in theme.liquid <head>{%- endcomment -%}
 <script src="{{ 'https://your-console.vercel.app/api/sdk/${siteId}' }}" defer></script>`;
 
-const WEBFLOW_SNIPPET = (siteId: string) => `<!-- VibePersonalize — add in Webflow > Project Settings > Custom Code > Head -->
+const WEBFLOW_SNIPPET = (siteId: string) => `<!-- VibeGuy — add in Webflow > Project Settings > Custom Code > Head -->
 <script src="https://your-console.vercel.app/api/sdk/${siteId}" defer></script>`;
 
 const REACT_SNIPPET = (siteId: string) => `// In Next.js layout.tsx or _document.tsx

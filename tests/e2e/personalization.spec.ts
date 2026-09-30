@@ -5,7 +5,7 @@ test.describe('Creator-to-Commerce Personalization Flow', () => {
     // 1. Visit overview dashboard
     await page.goto('/');
     await expect(page.locator('h1')).toContainText('Personalization Overview');
-    await expect(page.locator('.brand')).toContainText('VibePersonalize');
+    await expect(page.locator('.brand')).toContainText('VibeGuy');
 
     // 2. Visit campaigns list
     await page.goto('/campaigns');

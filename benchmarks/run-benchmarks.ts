@@ -5,7 +5,7 @@ import { calculateTwoProportionZTest } from '../packages/core/src/stats';
 
 async function runBenchmarks() {
   console.log('='.repeat(70));
-  console.log('  VIBEPERSONALIZE SYSTEM & GUARDRAIL BENCHMARK SUITE');
+  console.log('  VIBEGUY SYSTEM & GUARDRAIL BENCHMARK SUITE');
   console.log('  Measuring Real Execution Performance & Size Budgets');
   console.log('='.repeat(70));
   console.log();

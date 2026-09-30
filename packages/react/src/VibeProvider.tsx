@@ -30,7 +30,6 @@ export interface VibeProviderProps {
   siteId: string;
   publicKey: string;
   initialProfile?: VibeProfile | null;
-  ingestUrl?: string;
   children: React.ReactNode;
 }
 
@@ -38,7 +37,6 @@ export function VibeProvider({
   siteId,
   publicKey,
   initialProfile = null,
-  ingestUrl = '/api/collect',
   children,
 }: VibeProviderProps) {
   const [profile, setProfile] = useState<VibeProfile | null>(initialProfile);

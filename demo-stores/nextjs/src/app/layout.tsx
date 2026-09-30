@@ -11,7 +11,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" data-vibe-ssr="1">
       <head>
         <link rel="canonical" href="https://store.example.com/" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

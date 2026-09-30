@@ -3,7 +3,7 @@ import { Navigation } from '@/components/Navigation';
 import { headers } from 'next/headers';
 
 export const metadata = {
-  title: 'VibePersonalize Console',
+  title: 'VibeGuy Console',
   description: 'Creator-to-commerce personalization studio',
 };
 

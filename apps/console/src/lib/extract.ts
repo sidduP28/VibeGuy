@@ -16,7 +16,7 @@ export async function fetchPublicHtml(rawUrl: string): Promise<string> {
     const res = await fetch(safe, {
       signal: ctrl.signal,
       redirect: 'manual',
-      headers: { 'user-agent': 'VibePersonalizeExtractor/1.0' },
+      headers: { 'user-agent': 'VibeGuyExtractor/1.0' },
     });
     if (res.status >= 300 && res.status < 400) {
       const loc = res.headers.get('location');

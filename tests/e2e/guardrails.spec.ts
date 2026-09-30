@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('VibePersonalize Guardrails Verification (G1–G5)', () => {
+test.describe('VibeGuy Guardrails Verification (G1–G5)', () => {
   test('G1 & G2: SDK script compiles and delivers under 50ms budget', async ({ request }) => {
     const res = await request.get('/api/sdk/site_demo');
     expect(res.status()).toBe(200);
@@ -21,7 +21,7 @@ test.describe('VibePersonalize Guardrails Verification (G1–G5)', () => {
   test('G4: SEO Neutrality - title, canonical, and meta descriptions are untouched', async ({ page }) => {
     await page.goto('/?vibe=fit2026');
     const title = await page.title();
-    expect(title).toContain('VibePersonalize Console');
+    expect(title).toContain('VibeGuy Console');
   });
 
   test('G5: Ingestion API blocks spoofed origins and invalid payloads', async ({ request }) => {

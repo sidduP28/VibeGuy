@@ -104,7 +104,7 @@ export async function runLoadTest(options: LoadTestOptions): Promise<LoadTestRes
 
 async function main() {
   console.log('='.repeat(70));
-  console.log('  VIBEPERSONALIZE CONSOLE API LOAD TEST');
+  console.log('  VIBEGUY CONSOLE API LOAD TEST');
   console.log('  Testing /api/sdk/[siteId] and /api/collect throughput');
   console.log('='.repeat(70));
   console.log();

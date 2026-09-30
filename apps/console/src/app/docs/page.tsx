@@ -2,7 +2,7 @@ export default function DocsPage() {
   return (
     <div>
       <p className="kicker">Documentation</p>
-      <h1>VibePersonalize</h1>
+      <h1>VibeGuy</h1>
       <p className="lede">
         Creator-to-commerce personalization. Zero-latency in-head SDK with measurable uplift science.
       </p>
