@@ -1,0 +1,15 @@
+node_modules/
+.next/
+dist/
+build/
+*.log
+.DS_Store
+.turbo
+coverage/
+*.sqlite
+*.sqlite-journal
+test-results/
+playwright-report/
+blob-report/
+.env.local
+.env.*.local

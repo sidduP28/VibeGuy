@@ -1,0 +1,21 @@
+{
+  "name": "vibepersonalize-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "pnpm -r lint",
+    "dev": "pnpm --filter console dev",
+    "seed": "pnpm --filter console seed",
+    "test:e2e": "playwright test",
+    "benchmark": "tsx benchmarks/run-benchmarks.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.7"
+  }
+}
