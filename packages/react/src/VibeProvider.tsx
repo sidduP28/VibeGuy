@@ -1,3 +1,5 @@
+'use client';
+
 import React, { createContext, useState, useEffect, useMemo } from 'react';
 
 export interface VibeProfile {

@@ -1,6 +1,4 @@
 import { VibeProvider, VibeSlot } from '@vibe/react';
-import { headers } from 'next/headers';
-import Script from 'next/script';
 
 // Creator profile map — in production this comes from your API
 const CREATOR_PROFILES: Record<string, {
@@ -55,17 +53,6 @@ export default async function StorePage({
   const vibeCode = sp.vibe?.toLowerCase() ?? sp.utm_source ?? '';
   const profile = CREATOR_PROFILES[vibeCode];
 
-  const slots = profile
-    ? {
-        headline: profile.headline,
-        subheadline: profile.subheadline,
-        cta: profile.cta,
-        'hero-image': profile.hero,
-        offer: profile.offer,
-        testimonial: profile.testimonial,
-      }
-    : {};
-
   const themeStyle = profile?.theme
     ? ({
         '--vibe-bg': profile.theme.bg,
@@ -77,110 +64,100 @@ export default async function StorePage({
 
   return (
     <VibeProvider
+      siteId="site_demo"
+      publicKey="pk_live_vibepersonalize_2026"
       initialProfile={
         profile
           ? {
-              vibeCode: profile.vibeCode,
-              headline: profile.headline,
-              subheadline: profile.subheadline,
-              cta: profile.cta,
-              hero: profile.hero,
-              offer: profile.offer,
+              creatorId: profile.vibeCode,
+              campaignId: `cmp_${profile.vibeCode}`,
+              slots: {
+                headline: profile.headline,
+                subheadline: profile.subheadline,
+                cta: profile.cta,
+                'hero-image': profile.hero,
+                offer: profile.offer,
+                testimonial: profile.testimonial,
+              },
             }
           : null
       }
     >
-      {/* G4: title and canonical are generic — never personalized */}
-      <html lang="en" data-vibe-ssr={profile ? '1' : undefined}>
-        <head>
-          <meta charSet="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <title>Apex Performance Store</title>
-          <meta name="description" content="Premium performance supplements and gear for serious athletes." />
-          <link rel="canonical" href="https://store.example.com/" />
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600&display=swap"
-            rel="stylesheet"
-          />
-          {/* SDK loads but skips DOM ops when data-vibe-ssr="1" */}
-          <Script src="http://localhost:3000/api/sdk/site_demo" strategy="beforeInteractive" />
-          <style>{`
-            :root{--vibe-bg:#0a0a0a;--vibe-text:#f4f4f5;--vibe-primary:#fff;--vibe-accent:#888;--vibe-radius:2px}
-            *{box-sizing:border-box;margin:0}
-            body{font-family:Inter,system-ui,sans-serif;background:#f9f9f7;color:#111}
-            a{text-decoration:none;color:inherit}
-            img{max-width:100%;display:block}
-            .nav{border-bottom:1px solid #e8e8e4;background:#fff;position:sticky;top:0;z-index:10}
-            .nav-i{max-width:1200px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between}
-            .logo{font-weight:700;font-size:1rem;letter-spacing:.1em}
-            .nav-a{display:flex;gap:18px;font-size:13px;color:#666}
-            .nav-a a:hover{color:#111}
-            .offer{background:var(--vibe-primary,#111);color:var(--vibe-bg,#f4f4f5);text-align:center;padding:8px;font-size:13px;font-weight:500}
-            .hero{display:grid;grid-template-columns:1fr 1fr;min-height:80vh}
-            .hero-img{overflow:hidden;background:#c9c2b2}
-            .hero-img img{width:100%;height:100%;object-fit:cover}
-            .hero-c{padding:60px 56px;display:flex;flex-direction:column;justify-content:center;background:var(--vibe-bg,#fff);color:var(--vibe-text,#111);transition:background .4s,color .3s}
-            .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--vibe-accent,#888);margin-bottom:14px}
-            h1{font-family:'Playfair Display',serif;font-size:clamp(1.7rem,3.5vw,2.7rem);line-height:1.1;letter-spacing:-.025em;margin-bottom:14px;color:var(--vibe-text,#111)}
-            .sub{font-size:.95rem;line-height:1.65;color:var(--vibe-accent,#666);max-width:42ch;margin-bottom:24px}
-            .btn-p{display:inline-flex;align-items:center;padding:12px 22px;background:var(--vibe-primary,#111);color:var(--vibe-bg,#fff);border-radius:var(--vibe-radius,2px);font-size:14px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s}
-            .btn-p:hover{opacity:.85}
-            .ts{background:var(--vibe-bg,#f4f4f5);color:var(--vibe-text,#111);padding:60px 24px;text-align:center;transition:background .4s,color .3s}
-            blockquote{font-family:'Playfair Display',serif;font-size:1.25rem;line-height:1.55;max-width:600px;margin:0 auto;font-style:italic;border:none}
-            blockquote footer{margin-top:14px;font-size:12px;font-style:normal;color:var(--vibe-accent,#888);font-family:Inter,sans-serif}
-            footer.foot{border-top:1px solid #e8e8e4;padding:24px;text-align:center;font-size:11px;color:#aaa}
-            @media(max-width:768px){.hero{grid-template-columns:1fr}.hero-img{min-height:220px}.hero-c{padding:36px 20px}.nav-a a:not(:last-child){display:none}}
-          `}</style>
-        </head>
-        <body style={themeStyle}>
-          <nav className="nav">
-            <div className="nav-i">
-              <span className="logo">APEX</span>
-              <div className="nav-a">
-                <a href="/collections">Collections</a>
-                <a href="/science">Science</a>
-                <a href="/about">About</a>
-              </div>
-            </div>
-          </nav>
+      <div style={themeStyle} data-vibe-ssr={profile ? '1' : undefined} className="store-container">
+        <style>{`
+          :root{--vibe-bg:#0a0a0a;--vibe-text:#f4f4f5;--vibe-primary:#fff;--vibe-accent:#888;--vibe-radius:2px}
+          *{box-sizing:border-box;margin:0}
+          body{font-family:Inter,system-ui,sans-serif;background:#f9f9f7;color:#111}
+          a{text-decoration:none;color:inherit}
+          img{max-width:100%;display:block}
+          .nav{border-bottom:1px solid #e8e8e4;background:#fff;position:sticky;top:0;z-index:10}
+          .nav-i{max-width:1200px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between}
+          .logo{font-weight:700;font-size:1rem;letter-spacing:.1em}
+          .nav-a{display:flex;gap:18px;font-size:13px;color:#666}
+          .nav-a a:hover{color:#111}
+          .offer{background:var(--vibe-primary,#111);color:var(--vibe-bg,#f4f4f5);text-align:center;padding:8px;font-size:13px;font-weight:500}
+          .hero{display:grid;grid-template-columns:1fr 1fr;min-height:80vh}
+          .hero-img{overflow:hidden;background:#c9c2b2}
+          .hero-img img{width:100%;height:100%;object-fit:cover}
+          .hero-c{padding:60px 56px;display:flex;flex-direction:column;justify-content:center;background:var(--vibe-bg,#fff);color:var(--vibe-text,#111);transition:background .4s,color .3s}
+          .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--vibe-accent,#888);margin-bottom:14px}
+          h1{font-family:'Playfair Display',serif;font-size:clamp(1.7rem,3.5vw,2.7rem);line-height:1.1;letter-spacing:-.025em;margin-bottom:14px;color:var(--vibe-text,#111)}
+          .sub{font-size:.95rem;line-height:1.65;color:var(--vibe-accent,#666);max-width:42ch;margin-bottom:24px}
+          .btn-p{display:inline-flex;align-items:center;padding:12px 22px;background:var(--vibe-primary,#111);color:var(--vibe-bg,#fff);border-radius:var(--vibe-radius,2px);font-size:14px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s}
+          .btn-p:hover{opacity:.85}
+          .ts{background:var(--vibe-bg,#f4f4f5);color:var(--vibe-text,#111);padding:60px 24px;text-align:center;transition:background .4s,color .3s}
+          blockquote{font-family:'Playfair Display',serif;font-size:1.25rem;line-height:1.55;max-width:600px;margin:0 auto;font-style:italic;border:none}
+          blockquote footer{margin-top:14px;font-size:12px;font-style:normal;color:var(--vibe-accent,#888);font-family:Inter,sans-serif}
+          footer.foot{border-top:1px solid #e8e8e4;padding:24px;text-align:center;font-size:11px;color:#aaa}
+          @media(max-width:768px){.hero{grid-template-columns:1fr}.hero-img{min-height:220px}.hero-c{padding:36px 20px}.nav-a a:not(:last-child){display:none}}
+        `}</style>
 
-          {/* Offer banner — personalized */}
-          <VibeSlot name="offer" tag="div" className="offer" />
-
-          <section className="hero">
-            <div className="hero-img">
-              <VibeSlot name="hero-image" tag="div">
-                <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200&q=80" alt="Performance athlete" />
-              </VibeSlot>
+        <nav className="nav">
+          <div className="nav-i">
+            <span className="logo">APEX</span>
+            <div className="nav-a">
+              <a href="/collections">Collections</a>
+              <a href="/science">Science</a>
+              <a href="/about">About</a>
             </div>
-            <div className="hero-c">
-              <span className="eyebrow">Performance nutrition · 2026</span>
-              <VibeSlot name="headline" tag="h1">
-                Engineered for Those Who Never Stop.
-              </VibeSlot>
-              <VibeSlot name="subheadline" tag="p" className="sub">
-                Performance nutrition and gear built for athletes who demand more from every session.
-              </VibeSlot>
-              <VibeSlot name="cta" tag="a" href="/shop" className="btn-p">
-                Shop Collection
-              </VibeSlot>
-            </div>
-          </section>
+          </div>
+        </nav>
 
-          <section className="ts">
-            <VibeSlot name="testimonial" tag="blockquote">
-              <p>"The quality speaks for itself."</p>
-              <footer>— Verified Athlete</footer>
+        {/* Offer banner — personalized */}
+        <VibeSlot name="offer" tag="div" className="offer" />
+
+        <section className="hero">
+          <div className="hero-img">
+            <VibeSlot name="hero-image" tag="div">
+              <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200&q=80" alt="Performance athlete" />
             </VibeSlot>
-          </section>
+          </div>
+          <div className="hero-c">
+            <span className="eyebrow">Performance nutrition · 2026</span>
+            <VibeSlot name="headline" tag="h1">
+              Engineered for Those Who Never Stop.
+            </VibeSlot>
+            <VibeSlot name="subheadline" tag="p" className="sub">
+              Performance nutrition and gear built for athletes who demand more from every session.
+            </VibeSlot>
+            <VibeSlot name="cta" tag="a" href="/shop" className="btn-p">
+              Shop Collection
+            </VibeSlot>
+          </div>
+        </section>
 
-          <footer className="foot">
-            Next.js store · @vibe/react SSR · data-vibe-ssr=&quot;1&quot; → client SDK skips DOM ops ·{' '}
-            {profile ? `Personalized for ?vibe=${vibeCode}` : 'Generic (no creator detected)'}
-          </footer>
-        </body>
-      </html>
+        <section className="ts">
+          <VibeSlot name="testimonial" tag="blockquote">
+            <p>"The quality speaks for itself."</p>
+            <footer>— Verified Athlete</footer>
+          </VibeSlot>
+        </section>
+
+        <footer className="foot">
+          Next.js store · @vibe/react SSR · data-vibe-ssr=&quot;1&quot; → client SDK skips DOM ops ·{' '}
+          {profile ? `Personalized for ?vibe=${vibeCode}` : 'Generic (no creator detected)'}
+        </footer>
+      </div>
     </VibeProvider>
   );
 }

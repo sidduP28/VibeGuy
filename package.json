@@ -8,6 +8,8 @@
     "test:coverage": "vitest run --coverage",
     "lint": "pnpm -r lint",
     "dev": "pnpm --filter console dev",
+    "dev:store": "pnpm --filter demo-nextjs dev",
+    "dev:all": "pnpm -r --parallel dev",
     "seed": "pnpm --filter console seed",
     "test:e2e": "playwright test",
     "benchmark": "tsx benchmarks/run-benchmarks.ts"

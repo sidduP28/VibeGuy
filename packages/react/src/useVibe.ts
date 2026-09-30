@@ -1,3 +1,5 @@
+'use client';
+
 import { useContext } from 'react';
 import { VibeContext, type VibeContextValue } from './VibeProvider';
 
